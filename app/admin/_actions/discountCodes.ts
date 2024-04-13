@@ -1,8 +1,11 @@
 "use server";
 
-import db from "@/db/db";
+import { notFound, redirect } from "next/navigation";
+
 import { DiscountCodeType } from "@prisma/client";
 import { z } from "zod";
+
+import db from "@/db/db";
 
 const addSchema = z
     .object({
@@ -40,16 +43,41 @@ const addSchema = z
 
 export async function addDiscountCode(prevState: unknown, formData: FormData) {
     const productIds = formData.getAll("productIds");
-    const results = addSchema.safeParse({
+    const result = addSchema.safeParse({
         ...Object.fromEntries(formData.entries()),
         productIds: productIds.length < 0 ? productIds : undefined,
     });
 
-    if (results.success === false) return results.error.formErrors.fieldErrors;
+    if (result.success === false) return result.error.formErrors.fieldErrors;
 
     const data = result.data;
 
-    db.discountCode.create({});
+    await db.discountCode.create({
+        data: {
+            code: data.code,
+            discountAmount: data.discountAmount,
+            discountType: data.discountType,
+            allProducts: data.allProducts,
+            products:
+                data.productIds != null
+                    ? { connect: data.productIds.map((id) => ({ id })) }
+                    : undefined,
+            expiresAt: data.expiresAt,
+            limit: data.limit,
+        },
+    });
 
-    return {};
+    redirect("/admin/discount-codes");
+}
+
+export async function toggleDiscountCodeActive(id: string, isActive: boolean) {
+    await db.discountCode.update({ where: { id }, data: { isActive } });
+}
+
+export async function deleteDiscountCode(id: string) {
+    const discountCode = await db.discountCode.delete({ where: { id } });
+
+    if (discountCode == null) return notFound();
+
+    return discountCode;
 }
