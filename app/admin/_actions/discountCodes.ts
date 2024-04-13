@@ -1,5 +1,6 @@
 "use server";
 
+import db from "@/db/db";
 import { DiscountCodeType } from "@prisma/client";
 import { z } from "zod";
 
@@ -45,6 +46,10 @@ export async function addDiscountCode(prevState: unknown, formData: FormData) {
     });
 
     if (results.success === false) return results.error.formErrors.fieldErrors;
+
+    const data = result.data;
+
+    db.discountCode.create({});
 
     return {};
 }
