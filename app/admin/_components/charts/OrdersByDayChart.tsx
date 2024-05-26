@@ -18,7 +18,7 @@ type OrdersByDateChartProps = {
   }[];
 };
 
-export function OrderByDayChart({ data }: OrdersByDateChartProps) {
+export function OrdersByDayChart({ data }: OrdersByDateChartProps) {
   return (
     <ResponsiveContainer width="100%" minHeight={300}>
       <LineChart data={data} width={500} height={200}>
