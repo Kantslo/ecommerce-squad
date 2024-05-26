@@ -1,10 +1,10 @@
 "use client";
 
-import { formatCurrency } from "@/lib/formatters";
+import { formatNumber } from "@/lib/formatters";
 import {
+  Bar,
+  BarChart,
   CartesianGrid,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -14,29 +14,30 @@ import {
 type UsersByDateChartProps = {
   data: {
     date: string;
-    totalSales: number;
+    totalUsers: number;
   }[];
 };
 
 export function UsersByDayChart({ data }: UsersByDateChartProps) {
   return (
     <ResponsiveContainer width="100%" minHeight={300}>
-      <LineChart data={data} width={500} height={200}>
+      <BarChart data={data} width={500} height={200}>
         <CartesianGrid stroke="hsl(var(--muted))" />
         <XAxis dataKey="date" stroke="hsl(var(--primary))" />
         <YAxis
-          tickFormatter={(tick) => formatCurrency(tick)}
+          tickFormatter={(tick) => formatNumber(tick)}
           stroke="hsl(var(--primary))"
         />
-        <Tooltip formatter={(value) => formatCurrency(value as number)} />
-        <Line
-          dot={false}
-          dataKey="totalSales"
-          type="monotone"
-          name="totalSales"
+        <Tooltip
+          cursor={{ fill: "hsl(var(--muted))" }}
+          formatter={(value) => formatNumber(value as number)}
+        />
+        <Bar
+          dataKey="totalUsers"
+          name="New Customers"
           stroke="hsl(var(--primary))"
         />
-      </LineChart>
+      </BarChart>
     </ResponsiveContainer>
   );
 }
