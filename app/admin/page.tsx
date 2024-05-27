@@ -12,6 +12,7 @@ import { eachDayOfInterval, interval, startOfDay, subDays } from "date-fns";
 import { ReactNode } from "react";
 import { OrdersByDayChart } from "./_components/charts/OrdersByDayChart";
 import { UsersByDayChart } from "./_components/charts/UsersByDayChart";
+import { RevenueByProductChart } from "./_components/charts/RevenueByProductChart";
 
 async function getSalesData(
   createdAfter: Date | null,
@@ -151,6 +152,20 @@ export default async function AdminDashboard() {
         </ChartCard>
         <ChartCard title="New Customers">
           <UsersByDayChart data={userData.chartData} />
+        </ChartCard>
+        <ChartCard title="Revenue By Product">
+          <RevenueByProductChart
+            data={[
+              {
+                name: "P1",
+                revenue: 200,
+              },
+              {
+                name: "P2",
+                revenue: 300,
+              },
+            ]}
+          />
         </ChartCard>
       </div>
     </>
