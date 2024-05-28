@@ -7,9 +7,23 @@ import {
 } from "@/components/ui/card";
 import db from "@/db/db";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/formatters";
-import { Prisma } from "@prisma/client";
-import { eachDayOfInterval, interval, startOfDay } from "date-fns";
 import { OrdersByDayChart } from "./_components/charts/OrdersByDayChart";
+import { Prisma } from "@prisma/client";
+import {
+  differenceInDays,
+  differenceInMonths,
+  differenceInWeeks,
+  eachDayOfInterval,
+  eachMonthOfInterval,
+  eachWeekOfInterval,
+  eachYearOfInterval,
+  endOfWeek,
+  interval,
+  max,
+  min,
+  startOfDay,
+  startOfWeek,
+} from "date-fns";
 import { UsersByDayChart } from "./_components/charts/UsersByDayChart";
 import { RevenueByProductChart } from "./_components/charts/RevenueByProductChart";
 import { RANGE_OPTIONS, getRangeOption } from "@/lib/rangeOptions";
@@ -35,21 +49,21 @@ async function getSalesData(
     }),
   ]);
 
-  const dayArray = eachDayOfInterval(
-    interval(
-      createdAfter || startOfDay(chartData[0].createdAt),
-      createdBefore || new Date()
-    )
-  ).map((date) => {
+  const { array, format } = getChartDateArray(
+    createdAfter || startOfDay(chartData[0].createdAt),
+    createdBefore || new Date()
+  );
+
+  const dayArray = array.map((date) => {
     return {
-      date: formatDate(date),
+      date: format(date),
       totalSales: 0,
     };
   });
 
   return {
     chartData: chartData.reduce((data, order) => {
-      const formattedDate = formatDate(order.createdAt);
+      const formattedDate = format(order.createdAt);
       const entry = dayArray.find((day) => day.date === formattedDate);
       if (entry == null) return data;
       entry.totalSales += order.pricePaidInCents / 100;
@@ -80,21 +94,21 @@ async function getUserData(
     }),
   ]);
 
-  const dayArray = eachDayOfInterval(
-    interval(
-      createdAfter || startOfDay(chartData[0].createdAt),
-      createdBefore || new Date()
-    )
-  ).map((date) => {
+  const { array, format } = getChartDateArray(
+    createdAfter || startOfDay(chartData[0].createdAt),
+    createdBefore || new Date()
+  );
+
+  const dayArray = array.map((date) => {
     return {
-      date: formatDate(date),
+      date: format(date),
       totalUsers: 0,
     };
   });
 
   return {
     chartData: chartData.reduce((data, user) => {
-      const formattedDate = formatDate(user.createdAt);
+      const formattedDate = format(user.createdAt);
       const entry = dayArray.find((day) => day.date === formattedDate);
       if (entry == null) return data;
       entry.totalUsers += 1;
@@ -140,7 +154,7 @@ async function getProductData(
           }, 0),
         };
       })
-      .filter((products) => products.revenue > 0),
+      .filter((product) => product.revenue > 0),
     activeCount,
     inactiveCount,
   };
@@ -174,14 +188,12 @@ export default async function AdminDashboard({
   const totalSalesRangeOption =
     getRangeOption(totalSalesRange, totalSalesRangeFrom, totalSalesRangeTo) ||
     RANGE_OPTIONS.last_7_days;
-
   const newCustomersRangeOption =
     getRangeOption(
       newCustomersRange,
       newCustomersRangeFrom,
       newCustomersRangeTo
     ) || RANGE_OPTIONS.last_7_days;
-
   const revenueByProductRangeOption =
     getRangeOption(
       revenueByProductRange,
@@ -242,18 +254,7 @@ export default async function AdminDashboard({
           title="Revenue By Product"
           queryKey="revenueByProductRange"
           selectedRangeLabel={revenueByProductRangeOption.label}>
-          <RevenueByProductChart
-            data={[
-              {
-                name: "P1",
-                revenue: 200,
-              },
-              {
-                name: "P2",
-                revenue: 300,
-              },
-            ]}
-          />
+          <RevenueByProductChart data={productData.chartData} />
         </ChartCard>
       </div>
     </>
@@ -278,4 +279,41 @@ function DashboardCard({ title, subtitle, body }: DashboardCardProps) {
       </CardContent>
     </Card>
   );
+}
+
+function getChartDateArray(startDate: Date, endDate: Date = new Date()) {
+  const days = differenceInDays(endDate, startDate);
+  if (days < 30) {
+    return {
+      array: eachDayOfInterval(interval(startDate, endDate)),
+      format: formatDate,
+    };
+  }
+
+  const weeks = differenceInWeeks(endDate, startDate);
+  if (weeks < 30) {
+    return {
+      array: eachWeekOfInterval(interval(startDate, endDate)),
+      format: (date: Date) => {
+        const start = max([startOfWeek(date), startDate]);
+        const end = min([endOfWeek(date), endDate]);
+
+        return `${formatDate(start)} - ${formatDate(end)}`;
+      },
+    };
+  }
+
+  const months = differenceInMonths(endDate, startDate);
+  if (months < 30) {
+    return {
+      array: eachMonthOfInterval(interval(startDate, endDate)),
+      format: new Intl.DateTimeFormat("en", { month: "long", year: "numeric" })
+        .format,
+    };
+  }
+
+  return {
+    array: eachYearOfInterval(interval(startDate, endDate)),
+    format: new Intl.DateTimeFormat("en", { year: "numeric" }).format,
+  };
 }
